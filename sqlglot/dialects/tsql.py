@@ -38,6 +38,13 @@ class TSQL(Dialect):
             this = self._parse_field()
             return self.expression(exp.Cast, this=this, to=to)
 
+        FUNCTIONS = {
+            **Parser.FUNCTIONS,
+            "IIF": exp.If.from_arg_list,
+            "ISNULL": exp.Coalesce.from_arg_list,
+            "EOMONTH": exp.EOMonth.from_arg_list,
+        }
+
     class Generator(Generator):
         TYPE_MAPPING = {
             **Generator.TYPE_MAPPING,

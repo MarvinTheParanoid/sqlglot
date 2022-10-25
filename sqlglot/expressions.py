@@ -53,7 +53,10 @@ class Expression(metaclass=_Expression):
         return hash(
             (
                 self.key,
-                tuple((k, tuple(v) if isinstance(v, list) else v) for k, v in _norm_args(self).items()),
+                tuple(
+                    (k, tuple(v) if isinstance(v, list) else v)
+                    for k, v in _norm_args(self).items()
+                ),
             )
         )
 
@@ -305,7 +308,9 @@ class Expression(metaclass=_Expression):
 
         A AND B AND C -> [A, B, C]
         """
-        for node, _, _ in self.dfs(prune=lambda n, p, *_: p and not isinstance(n, self.__class__)):
+        for node, _, _ in self.dfs(
+            prune=lambda n, p, *_: p and not isinstance(n, self.__class__)
+        ):
             if not isinstance(node, self.__class__):
                 yield node.unnest() if unnest else node
 
@@ -338,7 +343,9 @@ class Expression(metaclass=_Expression):
 
         args = {
             k: ", ".join(
-                v.to_s(hide_missing=hide_missing, level=level + 1) if hasattr(v, "to_s") else str(v)
+                v.to_s(hide_missing=hide_missing, level=level + 1)
+                if hasattr(v, "to_s")
+                else str(v)
                 for v in ensure_list(vs)
                 if v is not None
             )
@@ -375,7 +382,9 @@ class Expression(metaclass=_Expression):
             new_node.parent = node.parent
             return new_node
 
-        replace_children(new_node, lambda child: child.transform(fun, *args, copy=False, **kwargs))
+        replace_children(
+            new_node, lambda child: child.transform(fun, *args, copy=False, **kwargs)
+        )
         return new_node
 
     def replace(self, expression):
@@ -527,7 +536,9 @@ class Unionable:
         Returns:
             Union: the Union expression.
         """
-        return union(left=self, right=expression, distinct=distinct, dialect=dialect, **opts)
+        return union(
+            left=self, right=expression, distinct=distinct, dialect=dialect, **opts
+        )
 
     def intersect(self, expression, distinct=True, dialect=None, **opts):
         """
@@ -547,7 +558,9 @@ class Unionable:
         Returns:
             Intersect: the Intersect expression
         """
-        return intersect(left=self, right=expression, distinct=distinct, dialect=dialect, **opts)
+        return intersect(
+            left=self, right=expression, distinct=distinct, dialect=dialect, **opts
+        )
 
     def except_(self, expression, distinct=True, dialect=None, **opts):
         """
@@ -567,7 +580,9 @@ class Unionable:
         Returns:
             Except: the Except expression
         """
-        return except_(left=self, right=expression, distinct=distinct, dialect=dialect, **opts)
+        return except_(
+            left=self, right=expression, distinct=distinct, dialect=dialect, **opts
+        )
 
 
 class UDTF(DerivedTable, Unionable):
@@ -783,7 +798,9 @@ class Identifier(Expression):
         return bool(self.args.get("quoted"))
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and _norm_arg(self.this) == _norm_arg(other.this)
+        return isinstance(other, self.__class__) and _norm_arg(self.this) == _norm_arg(
+            other.this
+        )
 
     def __hash__(self):
         return hash((self.key, self.this.lower()))
@@ -851,7 +868,9 @@ class Literal(Condition):
 
     def __eq__(self, other):
         return (
-            isinstance(other, Literal) and self.this == other.this and self.args["is_string"] == other.args["is_string"]
+            isinstance(other, Literal)
+            and self.this == other.this
+            and self.args["is_string"] == other.args["is_string"]
         )
 
     def __hash__(self):
@@ -1042,7 +1061,9 @@ class Properties(Expression):
         expressions = []
         for key, value in properties_dict.items():
             property_cls = cls.PROPERTY_KEY_MAPPING.get(key.upper(), AnonymousProperty)
-            expressions.append(property_cls(this=Literal.string(key), value=convert(value)))
+            expressions.append(
+                property_cls(this=Literal.string(key), value=convert(value))
+            )
         return cls(expressions=expressions)
 
 
@@ -1896,7 +1917,9 @@ class DataType(Expression):
     @classmethod
     def build(cls, dtype, **kwargs):
         return DataType(
-            this=dtype if isinstance(dtype, DataType.Type) else DataType.Type[dtype.upper()],
+            this=dtype
+            if isinstance(dtype, DataType.Type)
+            else DataType.Type[dtype.upper()],
             **kwargs,
         )
 
@@ -2108,7 +2131,13 @@ class Distinct(Expression):
 
 
 class In(Predicate):
-    arg_types = {"this": True, "expressions": False, "query": False, "unnest": False, "field": False}
+    arg_types = {
+        "this": True,
+        "expressions": False,
+        "query": False,
+        "unnest": False,
+        "field": False,
+    }
 
 
 class TimeUnit(Expression):
@@ -2161,10 +2190,14 @@ class Func(Condition):
         if cls.is_var_len_args:
             all_arg_keys = list(cls.arg_types)
             # If this function supports variable length argument treat the last argument as such.
-            non_var_len_arg_keys = all_arg_keys[:-1] if cls.is_var_len_args else all_arg_keys
+            non_var_len_arg_keys = (
+                all_arg_keys[:-1] if cls.is_var_len_args else all_arg_keys
+            )
             num_non_var = len(non_var_len_arg_keys)
 
-            args_dict = {arg_key: arg for arg, arg_key in zip(args, non_var_len_arg_keys)}
+            args_dict = {
+                arg_key: arg for arg, arg_key in zip(args, non_var_len_arg_keys)
+            }
             args_dict[all_arg_keys[-1]] = args[num_non_var:]
         else:
             args_dict = {arg_key: arg for arg, arg_key in zip(args, cls.arg_types)}
@@ -2174,7 +2207,9 @@ class Func(Condition):
     @classmethod
     def sql_names(cls):
         if cls is Func:
-            raise NotImplementedError("SQL name is only supported by concrete function implementations")
+            raise NotImplementedError(
+                "SQL name is only supported by concrete function implementations"
+            )
         if not hasattr(cls, "_sql_names"):
             cls._sql_names = [camel_to_snake_case(cls.__name__)]
         return cls._sql_names
@@ -2332,6 +2367,10 @@ class DatetimeDiff(Func, TimeUnit):
 
 class DatetimeTrunc(Func, TimeUnit):
     arg_types = {"this": True, "unit": True, "zone": False}
+
+
+class EOMonth(Func):
+    arg_types = {"this": True}
 
 
 class Extract(Func):
@@ -2876,7 +2915,9 @@ def _apply_conjunction_builder(
 
 
 def _combine(expressions, operator, dialect=None, **opts):
-    expressions = [condition(expression, dialect=dialect, **opts) for expression in expressions]
+    expressions = [
+        condition(expression, dialect=dialect, **opts) for expression in expressions
+    ]
     this = expressions[0]
     if expressions[1:]:
         this = _wrap_operator(this)
@@ -3032,12 +3073,21 @@ def update(table, properties, where=None, from_=None, dialect=None, **opts):
     update = Update(this=maybe_parse(table, into=Table, dialect=dialect))
     update.set(
         "expressions",
-        [EQ(this=maybe_parse(k, dialect=dialect, **opts), expression=convert(v)) for k, v in properties.items()],
+        [
+            EQ(this=maybe_parse(k, dialect=dialect, **opts), expression=convert(v))
+            for k, v in properties.items()
+        ],
     )
     if from_:
-        update.set("from", maybe_parse(from_, into=From, dialect=dialect, prefix="FROM", **opts))
+        update.set(
+            "from",
+            maybe_parse(from_, into=From, dialect=dialect, prefix="FROM", **opts),
+        )
     if where:
-        update.set("where", maybe_parse(where, into=Where, dialect=dialect, prefix="WHERE", **opts))
+        update.set(
+            "where",
+            maybe_parse(where, into=Where, dialect=dialect, prefix="WHERE", **opts),
+        )
     return update
 
 
@@ -3156,7 +3206,9 @@ def to_identifier(alias, quoted=None):
             quoted = not re.match(SAFE_IDENTIFIER_RE, alias)
         identifier = Identifier(this=alias, quoted=quoted)
     else:
-        raise ValueError(f"Alias needs to be a string or an Identifier, got: {alias.__class__}")
+        raise ValueError(
+            f"Alias needs to be a string or an Identifier, got: {alias.__class__}"
+        )
     return identifier
 
 
@@ -3298,7 +3350,9 @@ def replace_children(expression, fun):
             else:
                 new_child_nodes.append(cn)
 
-        expression.args[k] = new_child_nodes if is_list_arg else list_get(new_child_nodes, 0)
+        expression.args[k] = (
+            new_child_nodes if is_list_arg else list_get(new_child_nodes, 0)
+        )
 
 
 def column_table_names(expression):

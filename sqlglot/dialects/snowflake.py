@@ -28,7 +28,9 @@ def _snowflake_to_timestamp(args):
 
         # case: <numeric_expr> [ , <scale> ]
         if second_arg.name not in ["0", "3", "9"]:
-            raise ValueError(f"Scale for snowflake numeric timestamp is {second_arg}, but should be 0, 3, or 9")
+            raise ValueError(
+                f"Scale for snowflake numeric timestamp is {second_arg}, but should be 0, 3, or 9"
+            )
 
         if second_arg.name == "0":
             timescale = exp.UnixToTime.SECONDS
@@ -67,6 +69,10 @@ def _unix_to_time(self, expression):
         return f"TO_TIMESTAMP({timestamp}, 9)"
 
     raise ValueError("Improper scale for timestamp")
+
+
+def _coalesce_sql(self, expression):
+    return f"IFNULL({self.sql(expression, 'this')}, {self.expressions(expression)})"
 
 
 class Snowflake(Dialect):
@@ -162,12 +168,14 @@ class Snowflake(Dialect):
         TRANSFORMS = {
             **Generator.TRANSFORMS,
             exp.If: rename_func("IFF"),
+            exp.Coalesce: _coalesce_sql,
             exp.StrToTime: lambda self, e: f"TO_TIMESTAMP({self.sql(e, 'this')}, {self.format_time(e)})",
             exp.UnixToTime: _unix_to_time,
             exp.Array: inline_array_sql,
             exp.StrPosition: rename_func("POSITION"),
             exp.Parameter: lambda self, e: f"${self.sql(e, 'this')}",
             exp.PartitionedByProperty: lambda self, e: f"PARTITION BY {self.sql(e, 'value')}",
+            exp.EOMonth: rename_func("LAST_DAY"),
         }
 
         TYPE_MAPPING = {
